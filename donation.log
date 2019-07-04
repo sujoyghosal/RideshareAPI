@@ -1,0 +1,6 @@
+[2019-04-12T12:11:47.111] [INFO] Donation - listening on *:8080
+[2019-04-12T12:13:35.479] [INFO] Donation - listening on *:8080
+[2019-04-12T12:14:41.178] [INFO] Donation - listening on *:8080
+[2019-04-12T12:16:30.886] [INFO] Donation - Read FailedNoHostAvailableError: All host(s) tried for query failed. First host tried, 172.17.0.2:9042: DriverError: Connection timeout. See innerErrors.
+[2019-04-12T12:17:35.260] [INFO] Donation - Read FailedNoHostAvailableError: All host(s) tried for query failed. First host tried, 172.17.0.2:9042: DriverError: Connection timeout. See innerErrors.
+[2019-04-12T12:19:57.392] [INFO] Donation - Read FailedNoHostAvailableError: All host(s) tried for query failed. First host tried, 172.17.0.2:9042: DriverError: Connection timeout. See innerErrors.

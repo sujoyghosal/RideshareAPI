@@ -1,0 +1,57 @@
+create keyspace rideshare WITH replication = {'class':'SimpleStrategy', 'replication_factor' : 1} AND durable_writes = true;
+use rideshare;
+create type vehicle (hasac boolean, hasairbags boolean, color text, make text, model text, year int, hasfmradio boolean, seats int, type text, registration text);
+create type location ( lat double, lng double);
+create table users ( 
+    userid uuid, 
+    fullname text, 
+    email text, 
+    mobile text, 
+    encrypted_pw text, 
+    vehicles list<frozen<vehicle>>,
+    PRIMARY KEY(email)
+    );
+INSERT INTO users (userid, fullname, encrypted_pw, email, vehicles, mobile  )         VALUES (now(), 'Sujoy Ghosal','$2b$10$LfXY9tj5SYRStDI8ARDGyOaHYIpdFzkQ6BcJ9e.bqLGkv2/7yLam.','gsujoy@yahoo.com', null,'+91 8777653958');
+UPDATE users SET vehicles = vehicles + [ 
+{ hasac: true, 
+hasairbags: true, 
+color: 'black',
+make:'Honda',
+model:'City',
+year:2012,
+hasfmradio: true,
+seats: 5,
+type: 'Sedan',
+registration: 'WB02 AC 2023'
+}] WHERE email = 'gsujoy@yahoo.com';
+
+create table driverlocation (
+eventid uuid PRIMARY KEY,
+userid uuid,
+vehicle vehicle,
+fullname text,
+email text,
+mobile text,
+context text,
+currentlocation location,
+eventtime timestamp);
+select * from driverlocation where eventtime >= '2019-05-17 07:01:00+0000' ALLOW FILTERING;
+
+create table riderequest (
+eventid uuid PRIMARY KEY,
+userid uuid,
+fullname text,
+email text,
+mobile text,
+context text,
+status text,
+paymenttype text,
+passengercount int,
+currentlocation location,
+source location,
+destination location,
+eventtime timestamp);
+
+INSERT INTO driverlocation (eventid, userid, vehicle, fullname, email, mobile, context, currentlocation, eventtime)          
+VALUES (230c8d28-4b9f-4b47-9155-213f19e033ac, 1a469b7f-b023-4817-aca7-41d58e827133, {}, 
+'Sujoy Ghosal','gsujoy@yahoo.com','9876543210','location update',{ lat : 22.37734, lng : 88.372445 }, 1557200421433)

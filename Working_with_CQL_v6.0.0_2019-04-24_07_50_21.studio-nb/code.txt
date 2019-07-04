@@ -1,0 +1,419 @@
+--------------------NOTEBOOK_Working with CQL v6.0.0--------------------
+--------------------CELL_MARKDOWN_1--------------------
+### Welcome to the DataStax Studio CQL Tutorial Notebook!
+
+In this tutorial notebook we will cover how to work with CQL in Studio.  If you are new to CQL, check out the [documentation] (http://docs.datastax.com/en/dse/6.0/cql) or a [short video on DataStax Academy] (https://academy.datastax.com/resources/ds201-foundations-apache-cassandra?unit=quick-wins-cql) (requires free registration).
+
+Lets get started!
+--------------------CELL_MARKDOWN_2--------------------
+### CQL Schema
+ 
+This tutorial will go over working with CQL schema in Studio.  Let's begin by creating a new CQL schema.  The schema will be a subset of the 
+classic videodb example application you may have seen [elsewhere](https://academy.datastax.com/resources/ds220-data-modeling). 
+--------------------CELL_MARKDOWN_3--------------------
+### Keyspaces
+
+The next cell contains the statement to create our videodb keyspace.  Place the cursor in the cell and use the **shift+enter** keyboard shortcut to execute the statements.
+
+**NOTE:  For a full list of keyboard shortcuts click on the question mark in the top right corner to access the help menu**
+--------------------CELL_CQL_4--------------------
+//execute this statement either using the keyboard shortcut shift+enter, or hit the play in the top right of the cell
+CREATE KEYSPACE rideshare WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
+
+--------------------CELL_CQL_5--------------------
+create table users (
+userid UUID PRIMARY KEY,
+fullname text,
+encrypted_pw text,
+email text,
+vehicles set<uuid>,
+mobile text
+);
+--------------------CELL_CQL_6--------------------
+create table vehicles (
+vehicleid uuid primary key,
+make text,
+model text,
+safetylock boolean,
+seats int,
+type text,
+year int,
+color text,
+vehicleac boolean,
+airbags boolean
+);
+--------------------CELL_CQL_7--------------------
+create table events (
+eventid uuid primary key, vehicleid uuid, fullname text, email text, mobile text, command text, currentlocation location, eventtime date, userid uuid
+)
+--------------------CELL_CQL_8--------------------
+create type location (
+lat decimal, lng decimal
+);
+--------------------CELL_MARKDOWN_9--------------------
+After creating a keyspace, the following changes occur in the Notebook:
+- **Validation Errors**:  You will now see a validation error in the cell above.  This is because re-executing this statement would lead to an error because the keyspace already exists.  
+  *To avoid the validation error above, add an IF NOT EXISTS clause after the KEYSPACE keyword*
+- **Keyspace Selection**: If you click just to the right of **Keyspace:  not selected** you will get a drop down of available keyspaces that now contains your newly created videodb keyspace.  
+    Newly created keyspaces will always be at the top of the drop down selection, followed by a line to separate them from system keyspaces which are also presented in the drop down menu.
+
+In the cell above, try these steps:
+1.  Hover over the red marker with your cursor to see the detailed validation error.
+2.  Click on the keyspace dropdown menu and select the videodb keyspace.
+--------------------CELL_MARKDOWN_10--------------------
+### Keyspaces and Use Statements
+
+Generally, you will specify a default keyspace for a cell using the keyspace drop down menu for a cell.  However, the **USE** CQL statement is also supported in Studio.
+
+Here are some things specific to Studio and CQL cells:
+
+1.  USE statements only apply to the current cell.
+2.  A USE statement will override the cell level default keyspace setting for all statements following the USE statement within that cell.
+3.  The keyspace selected in the keyspace drop down menu only applies to the current cell.  However, when you create a new cell below an existing CQL cell, the keyspace configuration is copied to the new cell.
+4.  If a default keyspace is not selected, and there are no USE statements in the cell, all statements must be fully qualified to include the desired keyspace.
+
+Next, see how configuration of a CQL cell is copied into new cells:
+--------------------CELL_CQL_11--------------------
+/*
+ * 1.  Select the 'videodb' keyspace using the drop down menu above
+ * 2.  Create a new CQL cell either by using the keyboard shortcut Ctrl+N, or by clicking on the '+' control below the cell
+ * 3.  When you are done, delete the unneeded cell
+ *
+ * To delete a cell click in the cell, then hit escape to enter 'command mode'. Once in command mode use the keyboard shortcut: Delete (Function + Backspace on Mac).  
+ * Or click on the top right hand corner of the notebook cell, to select the Delete action
+ */
+--------------------CELL_MARKDOWN_12--------------------
+### Schema Tables 
+Now that you've created a keyspace and have seen how to work with them in Studio, create a few tables by executing the cell below.
+
+Three tables are created, *videos, video_rating,* and *video_event*.  *videos* holds data about the videos, *video_rating* holds ratings about the videos
+and *video_event* holds information on video viewing.
+--------------------CELL_CQL_13--------------------
+USE videodb;  //or select the default keyspace above, and comment out this line
+
+CREATE TABLE videos (
+   videoid uuid,
+   videoname varchar,
+   username varchar,
+   description varchar,
+   location map<varchar,varchar>,
+   tags set<varchar>,
+   upload_date timestamp,
+   PRIMARY KEY (videoid)
+); 
+
+CREATE TABLE video_rating (
+   videoid uuid,
+   rating_counter counter,
+   rating_total counter,
+   PRIMARY KEY (videoid)
+);
+
+CREATE TABLE video_event (
+   videoid uuid,
+   username varchar,
+   event varchar,
+   event_timestamp timeuuid,
+   video_timestamp bigint,
+   PRIMARY KEY ((videoid,username),event_timestamp,event)
+) WITH CLUSTERING ORDER BY (event_timestamp DESC,event ASC);
+
+--------------------CELL_MARKDOWN_14--------------------
+### CQL Schema View
+
+Now that we have created a keyspace and some tables let's open up the schema view and take a look at what we've created.  The schema view is accessible by clicking on the schema 
+button in the top right hand corner of the notebook page:  <img src="/api/images/schema_button.png" alt="alt text"  height="30" style="border:1px solid gray">
+
+Once the schema view is open, select the videodb keyspace to open up a tree view of the schema elements within it:  
+
+<img src="/api/images/schema_view_1.png" alt="alt text" width="300" style="border:1px solid gray">
+<p>
+Once selected you will be presented with a tree view of your schema.  The view contains the associated tables, columns, column types, partioning key, clustering keys, and much more:
+
+<img src="/api/images/schema_tree.png" alt="alt text" width="300" style="border:1px solid gray">
+<p>
+Now give exploring the schema view a try yourself!
+--------------------CELL_MARKDOWN_15--------------------
+### DESCRIBE Support
+
+Another way to view your schema is to leverage Studio's `DESCRIBE` command support.  It's important to note that DESCRIBE commands are not actual CQL statements 
+and don't execute against your cluster.  Instead Studio uses the metadata it knows about your schema to generate equivalent output that you would find if issuing DESCRIBE commands using `cqlsh`.
+
+What DESCRIBE commands does Studio support?
+* DESCRIBE CLUSTER 
+* DESCRIBE KEYSPACES 
+* DESCRIBE KEYSPACE 
+* DESCRIBE TABLES 
+* DESCRIBE TABLE 
+* DESCRIBE INDEX 
+* DESCRIBE MATERIALIZED VIEW
+* DESCRIBE TYPES 
+* DESCRIBE TYPE 
+* DESCRIBE FUNCTIONS 
+* DESCRIBE FUNCTION 
+* DESCRIBE AGGREGATES 
+* DESCRIBE AGGREGATE 
+
+The next notebook cell shows the `DESCRIBE TABLE` command in action.
+--------------------CELL_CQL_16--------------------
+DESCRIBE TABLE videodb.videos;
+--------------------CELL_MARKDOWN_17--------------------
+With the new keyspace and tables created, it's time to insert some data!
+
+Execute the following cell:
+--------------------CELL_CQL_18--------------------
+USE videodb;
+
+INSERT INTO videos (videoid, videoname, username, description, location, tags, upload_date) 
+VALUES (99051fe9-6a9c-46c2-b949-38ef78858dd0,'My funny cat','tcodd', 'My cat likes to play the piano! So funny.',{'US':'/us/vid/99/99051fe9-6a9c-46c2-b949-38ef78858dd0'},{'cats','piano','lol'},'2012-06-01 08:00:00');
+
+INSERT INTO videos (videoid, videoname, username, description, location, tags, upload_date) 
+VALUES (b3a76c6b-7c7f-4af6-964f-803a9283c401,'Now my dog plays piano!','tcodd', 'My dog learned to play the piano because of the cat.',{'US':'/us/vid/b3/b3a76c6b-7c7f-4af6-964f-803a9283c401'},{'dogs','piano','lol'},'2012-08-30 16:50:00');
+
+INSERT INTO videos (videoid, videoname, username, description, location, tags, upload_date) 
+VALUES (0c3f7e87-f6b6-41d2-9668-2b64d117102c,'An Introduction to Database Systems','cdate', 'An overview of my book',{'US':'/us/vid/0c/0c3f7e87-f6b6-41d2-9668-2b64d117102c'},{'database','relational','book'},'2012-09-03 10:30:00');
+
+// Video Rating counters
+UPDATE video_rating SET rating_counter = rating_counter + 1, rating_total = rating_total + 3 
+WHERE videoid = 99051fe9-6a9c-46c2-b949-38ef78858dd0;
+
+UPDATE video_rating SET rating_counter = rating_counter + 1, rating_total = rating_total + 5 
+WHERE videoid = b3a76c6b-7c7f-4af6-964f-803a9283c401;
+
+UPDATE video_rating SET rating_counter = rating_counter + 1, rating_total = rating_total + 4 
+WHERE videoid = 0c3f7e87-f6b6-41d2-9668-2b64d117102c;
+
+INSERT INTO video_event (videoid, username, event, event_timestamp, video_timestamp) 
+VALUES (99051fe9-6a9c-46c2-b949-38ef78858dd0,'tcodd','start',now(), 0);
+
+INSERT INTO video_event (videoid, username, event, event_timestamp, video_timestamp) 
+VALUES (99051fe9-6a9c-46c2-b949-38ef78858dd0,'tcodd','stop',now(), 30000);
+
+INSERT INTO video_event (videoid, username, event, event_timestamp, video_timestamp) 
+VALUES (99051fe9-6a9c-46c2-b949-38ef78858dd0,'tcodd','start',now(), 3000);
+
+INSERT INTO video_event (videoid, username, event, event_timestamp, video_timestamp) 
+VALUES (99051fe9-6a9c-46c2-b949-38ef78858dd0,'tcodd','stop',now(), 230000);
+
+INSERT INTO video_event (videoid, username, event, event_timestamp, video_timestamp) 
+VALUES (b3a76c6b-7c7f-4af6-964f-803a9283c401,'cdate','start',now(), 0);
+
+INSERT INTO video_event (videoid, username, event, event_timestamp, video_timestamp) 
+VALUES (b3a76c6b-7c7f-4af6-964f-803a9283c401,'cdate','stop',now(), 30000);
+
+INSERT INTO video_event (videoid, username, event, event_timestamp, video_timestamp) 
+VALUES (b3a76c6b-7c7f-4af6-964f-803a9283c401,'cdate','start',now(), 3000);
+
+INSERT INTO video_event (videoid, username, event, event_timestamp, video_timestamp) 
+VALUES (b3a76c6b-7c7f-4af6-964f-803a9283c401,'cdate','stop',now(), 230000);
+--------------------CELL_MARKDOWN_19--------------------
+### Validations
+
+Now that we've got schema and we've got some data, let's examine useful features in Studio that will improve your efficiency in writing CQL statements.
+
+Studio has useful validation functionality:
+1. **Syntax validations**:  Check whether or not your statement is syntactically correct CQL.
+2. **Domain validations**:  Even if your statement is syntactically correct, there are many other kinds of errors you may experience executing a statement, 
+such as a table not existing.  Domain validations help you find these kinds of mistakes quickly.
+
+Take a look at the cell below to see an example of each:
+--------------------CELL_CQL_20--------------------
+USE videodb;
+
+/*
+ * Hover over the red markers in the gutter to the left to see full details about validation errors
+ */
+
+//An example of a syntax validation, where 'VALUE' should be 'VALUES'
+INSERT INTO videos (description) VALUE ('');
+
+//An example of a domain validation.  Column 'descriptions' doesn't exist
+INSERT INTO videos (descriptions) VALUES ('');
+--------------------CELL_MARKDOWN_21--------------------
+### Content Assist
+
+In the previous cell there was an error about a column that doesn't exist.  But how do you discover which columns do exist?
+
+There are two ways to find out within Studio.
+
+1.  Look at the schema view(discussed later in this notebook).
+2.  Invoke **Content Assist** (keyboard shortcut **Ctrl+Space**) while writing a statement.  
+ 
+In the examples that follow, place your cursor right before a comment, and hit **Ctrl+Space**:
+--------------------CELL_CQL_22--------------------
+ //Place the cursor before this comment, and then press Ctrl+Space before this comment for keyword proposals(ALTER, INSERT, SELECT, USE, etc)
+--------------------CELL_CQL_23--------------------
+use /*press Ctrl+Space after placing the cursor before this comment for keyspaces to be proposed */;
+--------------------CELL_CQL_24--------------------
+use videodb;
+
+insert into video_event ( /*press Ctrl+Space after placing the cursor before this comment for column names to be proposed */)
+--------------------CELL_MARKDOWN_25--------------------
+###  Effective Schema and Validations
+
+When validating your statements, Studio checks the statement against a combination of the database schema and current notebook DDL changes. Studio starts from the existing schema and then applies the changes each of your DDL statements would make to the schema in order to get an **effective schema** for the statement that it is currently validating.
+
+The statements that are applied to the existing database schema are from every cell and statement prior to the statement being validated.  This ensures that if you were to execute your cells one by one from the top down that they would each execute successfully.
+
+To make this clear, lets look at a simple example below.  Don't execute the next two cells yet, just review them!
+--------------------CELL_CQL_26--------------------
+CREATE KEYSPACE temporary WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
+
+/* 
+ * note there is no validation error here, even if you have not executed the prior statement to
+ * create the keyspace.  That's because keyspace 'temporary' exists in the effective schema 
+ * for this statement
+ */
+USE temporary;
+--------------------CELL_CQL_27--------------------
+/*
+ * note that even across cells keyspace 'temporary' exists in the effective schema, making the
+ * use statement and create table statements below valid
+ */
+CREATE TABLE temporary.videos (
+   videoid uuid,
+   videoname varchar,
+   username varchar,
+   description varchar,
+   location map<varchar,varchar>,
+   tags set<varchar>,
+   upload_date timestamp,
+   PRIMARY KEY (videoid)
+);
+--------------------CELL_MARKDOWN_28--------------------
+Before executing the two last cells to create keyspace **temporary**, and the table **temporary.videos**, note the validation error in the cell below.
+
+After creating the keyspace and table, note that validation warning on the select statement below has changed: 
+"*Table videos doesn't exist in keyspace temporary in current context, but does in the database*"
+
+What this validation means is that, should you execute the statements in the notebook prior to this statement, there would be an error.  But executing that statement 
+against the existing database schema in isolation would work.
+--------------------CELL_CQL_29--------------------
+use temporary;
+
+drop table videos;
+
+select * from videos;
+--------------------CELL_MARKDOWN_30--------------------
+We can clean now the unneeded temporary keyspace by executing the next cell:
+--------------------CELL_CQL_31--------------------
+DROP KEYSPACE temporary;
+--------------------CELL_MARKDOWN_32--------------------
+## Viewing Results
+
+Studio provides different ways to display results, including a table view and different styles of charts. In the following cells there is an
+example of the table view and pie chart:
+--------------------CELL_CQL_33--------------------
+//Table results, containing only basic types(nested types coming up a few cells below!)
+SELECT * FROM videodb.video_event;
+--------------------CELL_CQL_34--------------------
+//Pie chart results example
+SELECT * from videodb.video_rating;
+--------------------CELL_MARKDOWN_35--------------------
+### Viewing Nested Results
+
+Some results are nested, such as collection types or user defined types.  Let's create another table that includes user defined types(*phone, address*) to explore
+how results can be viewed for nested values.
+--------------------CELL_CQL_36--------------------
+USE videodb;
+
+CREATE TYPE phone (
+    number text,
+    tags set<text>
+);
+
+CREATE TYPE address (
+    street text,
+    city text,
+    zip int,
+    phones set<frozen<phone>>,
+    location frozen<tuple<float,float>>
+);
+
+CREATE TABLE video_users (
+   username varchar,
+   firstname varchar,
+   lastname varchar,
+   address frozen<address>,
+   email list<varchar>,
+   password varchar,
+   created_date timestamp,
+   PRIMARY KEY (username)
+);
+
+INSERT INTO video_users JSON '{
+	"username" : "rboyce",
+	"firstname" : "Raymond",
+	"lastname" : "Boyce",
+	"email" : ["ronald.boyce@gmail.com", "rboyce@gmail.com"],
+	"password" : "7f4dcc3b5aa765d61d8327deb882cf66",
+	"created_date" : "2017-01-01 08:00:00",
+	"address" : {
+		"street" : "SQL ave",
+		"city" : "Palo Alto",
+		"zip" : 94305,
+		"location" : [40.4240, 86.9290],
+		"phones" : [
+			{ "number" : "510-831-1234", "tags" : ["preferred", "direct line"]}, 
+			{ "number" : "510-408-4321", "tags" : ["cell1"]},
+			{ "number" : "703-521-4321", "tags" : ["cell2"]},
+			{ "number" : "719-428-2744", "tags" : ["cell3"]}
+		]
+	}
+}';
+--------------------CELL_MARKDOWN_37--------------------
+### Detailed Result View
+
+The inserted data is shown as a row with a column value that has nested data below.  Click directly on the address column value (as shown in the image below),
+and a JSON view of the nested data will appear.  In addition you'll also see the TTL value (if relevant), the write time, and the column type information.
+
+<img src="/api/images/detail_result_view.png" alt="alt text" height="300" style="border:1px solid gray">
+
+
+Click on the address value below to try!
+--------------------CELL_CQL_38--------------------
+select username, address from videodb.video_users;
+--------------------CELL_MARKDOWN_39--------------------
+### CQL Result Trace View
+
+In the next cell we've executed a query with CQL tracing enabled by choosing the **CL.ONE.TRACE** run configuration:  
+
+<img src="/api/images/trace_run_configuration.png" alt="alt text" height="200" height="150">
+
+
+Look for the trace results below the table results in the next cell which will contain details about each phase of the query execution, including: 
+* the node that participated in each phase
+* the role each node played in the phase
+* how long each phase took
+--------------------CELL_CQL_40--------------------
+SELECT * FROM videodb.video_event;
+--------------------CELL_MARKDOWN_41--------------------
+### Custom Run Configurations
+
+You may have noticed that we picked a default run configuration in the cell above that had tracing enabled.  What if you want a different run configuration?  Well that's really easy to create by doing the following steps:
+
+First click the run configuration drop down menu and select **Manage Configurations**:
+  
+<img src="/api/images/run_cfg_1.png" alt="alt text" width="300" style="border:1px solid gray">
+<p>
+Next click on **Add New Configuration**:  
+
+<img src="/api/images/run_cfg_2.png" alt="alt text" width="300" style="border:1px solid gray">
+<p>
+Next name your new configuration and select your custom settings, then click **Save**:
+
+<img src="/api/images/run_cfg_3.png" alt="alt text" width="300" style="border:1px solid gray">
+<p>
+Then click the run configuration drop down for the notebook cell, and select your custom run configuration:
+
+<img src="/api/images/run_cfg_4.png" alt="alt text" width="300" style="border:1px solid gray">
+
+<p>
+Lastly re-execute your cell **shift+enter** with the new run configuration.  
+--------------------CELL_MARKDOWN_42--------------------
+### All Done!!
+
+Thanks for taking a quick tour of the CQL support in Studio.  For more information on using CQL within Studio and other Studio features 
+check out the [Studio Documentation](http://docs.datastax.com/en/latest-studio).
+
+**Have fun!**
