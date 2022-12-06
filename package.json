@@ -17,7 +17,7 @@
         "cassandra-driver": "3.5.0",
         "country-state-city": "0.0.5",
         "dse-driver": "1.1.0",
-        "express": "3.x.x",
+        "express": "4.x.x",
         "generate-password": "1.4.1",
         "geolib": "^2.0.24",
         "googleapis": "^40.0.0",
